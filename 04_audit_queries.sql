@@ -80,3 +80,47 @@ SELECT product, ticket_subject, tickets, subject_rank
 FROM ranked
 WHERE subject_rank <= 3
 ORDER BY product, subject_rank, ticket_subject;
+
+-- 7a. Repeated ticket IDs
+SELECT ticket_id, COUNT(*) AS copies
+FROM support_tickets
+GROUP BY ticket_id
+HAVING COUNT(*) > 1;
+
+-- 7b. Same ticket entered twice under different IDs
+SELECT product, purchase_date, ticket_type, ticket_subject,
+       ticket_channel, ticket_priority, first_response_at,
+       COUNT(*) AS tickets,
+       LISTAGG(ticket_id, ', ') WITHIN GROUP (ORDER BY ticket_id) AS ticket_ids
+FROM support_tickets
+GROUP BY product, purchase_date, ticket_type, ticket_subject,
+         ticket_channel, ticket_priority, first_response_at
+HAVING COUNT(*) > 1
+ORDER BY tickets DESC;
+
+-- 8a. Reconciliation: total each breakdown
+SELECT 'status' AS breakdown, COUNT(*) AS groups_found, SUM(n) AS total
+FROM (SELECT ticket_status, COUNT(*) AS n FROM support_tickets GROUP BY ticket_status)
+UNION ALL
+SELECT 'type', COUNT(*), SUM(n)
+FROM (SELECT ticket_type, COUNT(*) AS n FROM support_tickets GROUP BY ticket_type)
+UNION ALL
+SELECT 'priority', COUNT(*), SUM(n)
+FROM (SELECT ticket_priority, COUNT(*) AS n FROM support_tickets GROUP BY ticket_priority)
+UNION ALL
+SELECT 'channel', COUNT(*), SUM(n)
+FROM (SELECT ticket_channel, COUNT(*) AS n FROM support_tickets GROUP BY ticket_channel);
+
+-- 8b. Same check with a window function
+SELECT ticket_status, COUNT(*) AS tickets,
+       SUM(COUNT(*)) OVER () AS grand_total
+FROM support_tickets
+GROUP BY ticket_status;
+
+-- 8c. Missing values in the grouping columns
+SELECT COUNT(*) AS total_rows,
+       COUNT(*) - COUNT(ticket_status)   AS null_status,
+       COUNT(*) - COUNT(ticket_type)     AS null_type,
+       COUNT(*) - COUNT(ticket_priority) AS null_priority,
+       COUNT(*) - COUNT(ticket_channel)  AS null_channel
+FROM support_tickets;

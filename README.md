@@ -1,10 +1,10 @@
 # Support Ticket Data Quality Audit (SQL)
 
-An audit of a customer support ticket export, written in Oracle SQL and run in [Oracle FreeSQL](https://freesql.com). I checked how tickets are spread across categories, which products and subjects drive volume, whether required fields are filled in, and whether the timestamps make sense, then looked at satisfaction once the bad records were removed.
+An audit of a customer support ticket export, written in Oracle SQL and run in [Oracle FreeSQL](https://freesql.com). I checked how tickets are spread across categories, which products and subjects drive volume, whether required fields are filled in, and whether the timestamps make sense, then looked at satisfaction once the bad records were removed. I also checked for duplicate tickets and reconciled every category breakdown back to the total row count.
 
 **Dataset:** [Customer Support Ticket Dataset](https://www.kaggle.com/datasets/suraj520/customer-support-ticket-dataset) on Kaggle (CC0: Public Domain). 8,469 tickets for 42 tech products. This is a synthetic dataset, so the findings describe the data and its problems, not a real company. I dropped customer names, emails, age, gender and the free-text description and resolution fields before loading.
 
-**SQL used:** `GROUP BY`, `UNION ALL`, `CASE WHEN`, `NULL` handling, filtering, CTEs (`WITH`), and the window function `DENSE_RANK() OVER (PARTITION BY ...)`.
+**SQL used:** `GROUP BY` and `HAVING`, `UNION ALL`, subqueries, `CASE WHEN`, `NULL` handling, `LISTAGG`, CTEs (`WITH`), and the window functions `DENSE_RANK() OVER (PARTITION BY ...)` and `SUM(COUNT(*)) OVER ()`.
 
 ## Findings
 
@@ -37,6 +37,21 @@ I ranked subjects by ticket count within each product using `DENSE_RANK()`. I ke
 
 For context, 8,469 tickets across 42 products and 16 subjects works out to about 13 tickets per product-and-subject pair. GoPro Hero refund requests, at 28, is roughly double that and the clearest outlier. The next highest are MacBook Pro product compatibility at 24, and Garmin Forerunner software bugs and Sony 4K HDR TV network problems at 23. Those sit closer to the average. Refund request is the most common number-one subject, topping or tying for the top spot on 10 products. Because this is a synthetic dataset, I treat gaps of a few tickets as probable noise, not real product problems.
 
+### Query 7: Duplicate tickets
+7a returned 0 rows, as expected. `ticket_id` is the table's primary key, and I checked the constraint list to confirm it. The database itself refuses a repeated ID, so this check confirms the key is working. 7b also returned 0 rows, so no ticket was entered twice under a new ID. The 2,819 open tickets have no first response time. `GROUP BY` treats those blanks as matching, so open tickets were still compared against each other on the other six columns, and none matched.
+
+### Query 8: Reconciliation
+All four breakdowns add back to 8,469:
+
+| Breakdown | Groups | Total |
+|---|---|---|
+| Status | 3 | 8,469 |
+| Type | 5 | 8,469 |
+| Priority | 4 | 8,469 |
+| Channel | 4 | 8,469 |
+
+The `SUM(COUNT(*)) OVER ()` version gives the same total next to each status row. The null check found 0 blanks in all four columns. That's why nothing went missing: a `NULL` would have shown up as an extra unlabeled group, and there isn't one. The breakdowns in Query 1 account for every ticket. `COUNT(*) - COUNT(column)` counts the blanks because `COUNT(column)` skips `NULL`s and `COUNT(*)` doesn't.
+
 ## What I'd recommend
 * Fix the timestamps first. Half of the closed tickets have a resolution time earlier than the first response, so no response-time or resolution-time report from this data can be trusted yet.
 * Add a validation rule that blocks a resolution time earlier than the first response when a ticket is closed.
@@ -49,7 +64,7 @@ For context, 8,469 tickets across 42 products and 16 subjects works out to about
 | `01_create_table.sql` | Creates the `support_tickets` table |
 | `02_load_part1.sql` to `02_load_part5.sql` | Loads the 8,469 tickets (run in order) |
 | `03_check_load.sql` | Confirms the row count |
-| `04_audit_queries.sql` | The six audit queries |
+| `04_audit_queries.sql` | The audit queries (1 to 8) |
 | `customer_support_tickets.csv` | Original Kaggle file |
 
 To run it yourself: sign in to [FreeSQL](https://freesql.com), run the files in number order with Run Script, then run `04_audit_queries.sql`.
