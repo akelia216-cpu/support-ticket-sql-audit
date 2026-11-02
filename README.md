@@ -4,6 +4,8 @@ An audit of a customer support ticket export, written in Oracle SQL and run in [
 
 **Dashboard:** [Support Ticket Data Quality Audit on Tableau Public](https://public.tableau.com/app/profile/akelia.nugent/viz/SupportTicketDataQualityAudit/Dashboard). I turned parts of Queries 1, 4, 5 and 6 into four Tableau charts from a copy of the data with customer names and emails removed, and the Tableau totals match the SQL results.
 
+**Slides:** [Seven-slide summary in Google Slides](https://docs.google.com/presentation/d/104yxH2WvUcF5s-mthFNTBFqkyeK5MdAtxoHdHS5KlZs/edit?usp=sharing) of the findings and recommendations.
+
 **Dataset:** [Customer Support Ticket Dataset](https://www.kaggle.com/datasets/suraj520/customer-support-ticket-dataset) on Kaggle (CC0: Public Domain). 8,469 tickets for 42 tech products. This is a synthetic dataset, so the findings describe the data and its problems, not a real company. I dropped customer names, emails, age, gender and the free-text description and resolution fields before loading.
 
 **SQL used:** `GROUP BY` and `HAVING`, `UNION ALL`, subqueries, `CASE WHEN`, `NULL` handling, `LISTAGG`, CTEs (`WITH`), and the window functions `DENSE_RANK() OVER (PARTITION BY ...)` and `SUM(COUNT(*)) OVER ()`.
@@ -69,5 +71,6 @@ The `SUM(COUNT(*)) OVER ()` version gives the same total next to each status row
 | `04_audit_queries.sql` | The audit queries (1 to 8) |
 | `customer_support_tickets.csv` | Original Kaggle file |
 | Tableau Public dashboard | [Four charts](https://public.tableau.com/app/profile/akelia.nugent/viz/SupportTicketDataQualityAudit/Dashboard): tickets by status, resolved before first response, satisfaction by channel, and top issues by product |
+| Slide summary | [Google Slides](https://docs.google.com/presentation/d/104yxH2WvUcF5s-mthFNTBFqkyeK5MdAtxoHdHS5KlZs/edit?usp=sharing): the findings and recommendations in seven slides |
 
 To run it yourself: sign in to [FreeSQL](https://freesql.com), run the files in number order with Run Script, then run `04_audit_queries.sql`.
